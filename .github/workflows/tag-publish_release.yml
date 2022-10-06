@@ -1,0 +1,55 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+jobs:
+  publish_recipe:
+    name: publish-recipe
+    runs-on: ubuntu-latest
+    steps:
+      # TODO Should be factorized
+      - name: Extract version from tag
+        id: tag
+        shell: bash
+        run: |
+          tag_version=$(echo "${{ github.ref_name }}" | cut -c2-)
+          echo "Extracted version ${tag_version}."
+          echo "::set-output name=version::${tag_version}"
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      # TODO Should be factorized
+      - name: Prepare recipe info
+        id: recipe
+        run: |
+          # That is not the accurate recipe name, this is just by convention.
+          # see: https://github.com/conan-io/conan/issues/9264
+          recipe_name=${GITHUB_REPOSITORY#*/}
+          echo "::set-output name=name::${recipe_name}"
+          recipe_version=${{ steps.tag.outputs.version }}
+          if [ -z "$recipe_version" ]; then recipe_version=$(echo ${GITHUB_SHA} | cut -c1-10); fi
+          echo "::set-output name=version::${recipe_version}"
+          recipe_userchannel=adnn/stable
+          echo "::set-output name=reference::${recipe_name}/${recipe_version}@${recipe_userchannel}"
+        shell: bash
+
+      - name: Get Conan
+        uses: turtlebrowser/get-conan@v1.0
+
+      - name: Configure Conan
+        # Remotes, profiles, and settings
+        run: conan config install https://${{ secrets.SHREDROBOT_GITHUB_TOKEN }}@github.com/ShredEagle/conan-config.git
+
+      - name: Export recipe
+        run: conan export . ${{ steps.recipe.outputs.reference }}
+
+      - name: Deploy Conan recipe
+        run: |
+          conan user -p ${{ secrets.CONAN_USER_PASSWORD }} -r adnn ${{ secrets.CONAN_USER_NAME }}
+          conan upload -r adnn --confirm --no-overwrite all ${{ steps.recipe.outputs.reference }}
+        shell: bash
