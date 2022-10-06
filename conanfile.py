@@ -24,6 +24,7 @@ class ShredBaseConanFile(object):
             # avoid path.join, on Windows it outputs '\', which is a string escape sequence.
             config.write("set({} {})\n".format("BUILD_tests", self.options.build_tests))
             config.write("set({} {})\n".format("BUILD_CONF_WarningAsError", self.conf.get("user.shred.build:warning_as_error", default="False")))
+            config.write("set({} {})\n".format("CMAKE_EXPORT_COMPILE_COMMANDS", self.conf.get("user.shred.build:export_compile_commands", default="False")))
 
 
     def _configure_cmake(self):
