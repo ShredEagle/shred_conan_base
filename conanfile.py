@@ -37,7 +37,11 @@ class ShredBaseConanFile(object):
         # Otherwise, root is the folder containing conanfile.py
         self.folders.root = ".."
         # Handles single-config (with subfolders) and multi-config (in a common folder)
-        cmake_layout(self)
+        ## Do not remove the whitespace atm, as I do not know how to remove it in workspace layouts.
+        #compiler = str(self.settings.compiler).replace(" ", "")
+        compiler = str(self.settings.compiler)
+        cmake_layout(self, build_folder="build-conan-{}{}".format(compiler,
+                                                                  self.settings.compiler.version))
 
 
     def configure(self):
